@@ -49,3 +49,4 @@ public:
 private:
     std::vector<IMAGE> img_list;
 };
+

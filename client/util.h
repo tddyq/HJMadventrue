@@ -44,3 +44,4 @@ inline void stop_audio(LPCTSTR id)
     _stprintf_s(str_cmd, _T("stop %s"), id);
     mciSendString(str_cmd, NULL, 0, NULL);
 }
+

@@ -31,6 +31,7 @@ public:
     {
         timer.restart();
         idx_frame = 0;
+
     }
 
     void set_position(const Vector2& position)

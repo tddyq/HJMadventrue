@@ -52,3 +52,4 @@ public:
 		return (*this - target).length() < 0.0001f; // ÔÊĞíµÄÎó²î·¶Î§Îª0.0001
 	}
 };
+
