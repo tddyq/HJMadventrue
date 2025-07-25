@@ -48,7 +48,7 @@ public:
 			return Vector2(0, 0);
 		return Vector2(x / len, y / len);
 	}
-	bool apprex(const Vector2& target) {
+	bool approx(const Vector2& target) {
 		return (*this - target).length() < 0.0001f; // ÔÊÐíµÄÎó²î·¶Î§Îª0.0001
 	}
 };
