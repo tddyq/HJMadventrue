@@ -9,7 +9,7 @@ public:
     Atlas() = default;
     ~Atlas() = default;
 
-    void load_from_file(LPCTSTR path_template, int num) {
+    void load(LPCTSTR path_template, int num) {
         img_list.clear();
         img_list.resize(num);
 

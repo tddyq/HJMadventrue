@@ -25,7 +25,10 @@ int main(int argc, char** argv) {
 
 	httplib::Server server;
 
+	
+
 	server.Post("/login", [&](const httplib::Request& req, httplib::Response& res) {
+		std::cout << "login" << std::endl;
 		std::lock_guard<std::mutex> lock(mtx);  
 		
 		if (progress_1 >= 0 && progress_2 >= 0) {
@@ -55,6 +58,7 @@ int main(int argc, char** argv) {
 		res.set_content(std::to_string(progress_1), "text/plain");
 
 		});
+	server.listen("0.0.0.0", 25565);
 	return 0;
 }
 
