@@ -46,18 +46,28 @@ public:
 	}
 
 	~Player() = default;
-	void on_update(int delta) {
+	void on_update(float delta) {
 		if (!position.approx(pos_target))
 			velocity = (pos_target - position).normalize() * SPEED_RUN;
 		else
 			velocity = Vector2(0, 0);
 
 		if ((pos_target - position).length() <= (velocity * delta).length())
-			position += pos_target;
+			position = pos_target;
 		else
+		{
 			position += velocity * delta;
 
+			//调试
+			std::cout << "更新角色position:" << this->position.x << " " << this->position.y << std::endl
+				<< "更新角色target:" << this->pos_target.x << " " << this->pos_target.y << std::endl
+				<<"速度:" <<this->velocity.length()<< std::endl;
+		}
+
 		if (velocity.approx(Vector2(0, 0))) {
+			//调试
+			std::cout << "更新角色当前动画" << std::endl;
+
 			switch (facing) {
 			case Player::Facing::Up: current_anim = &anim_idle_up; break;
 			case Player::Facing::Down: current_anim = &anim_idle_down; break;
@@ -66,24 +76,31 @@ public:
 			}
 		}
 		else {
+			//调试
+			std::cout << "更新角色当前动画" << std::endl;
+
 			if (abs(velocity.y) >= 0.0001f)
 				facing = (velocity.y > 0) ? Player::Facing::Down : Player::Facing::Up;
 			if(abs(velocity.x) >= 0.0001f)
 				facing = (velocity.x > 0) ? Player::Facing::Right : Player::Facing::Left;
 			switch (facing) {
-			case Player::Facing::Up: current_anim = &anim_idle_up; break;
-			case Player::Facing::Down: current_anim = &anim_idle_down; break;
-			case Player::Facing::Left: current_anim = &anim_idle_left; break;
-			case Player::Facing::Right: current_anim = &anim_idle_right; break;
+			case Player::Facing::Up: current_anim = &anim_run_up; break;
+			case Player::Facing::Down: current_anim = &anim_run_down; break;
+			case Player::Facing::Left: current_anim = &anim_run_left; break;
+			case Player::Facing::Right: current_anim = &anim_run_right; break;
 			}
-
-			if (!current_anim)return;
-			current_anim->set_position(position);
-			current_anim->on_update(delta);
 		}
+		if (!current_anim)return;
+		current_anim->set_position(position);
+		current_anim->on_update(delta);
+
+		
 	}
 
 	void on_render(const Camera& camera) {
+		//调试
+		std::cout << "渲染当前角色" << std::endl;
+
 		if (!current_anim)return;
 		current_anim->on_render(camera);
 	}
@@ -96,6 +113,7 @@ public:
 	void set_target(const Vector2& pos_target) {
 		this->pos_target = pos_target;
 	}
+	
 private:
 	const float SPEED_RUN = 100.0f;
 private:

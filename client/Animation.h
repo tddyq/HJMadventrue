@@ -12,10 +12,15 @@ public:
     Animation()
     {
         timer.set_one_shot(false);
+        //timer.resume();
         timer.set_on_timeout(
             [&]()
             {
                 idx_frame++;
+
+                //调试
+                std::cout << "当前动画帧: " << idx_frame << std::endl;
+
                 if (idx_frame >= frame_list.size())
                 {
                     idx_frame = is_loop ? 0 : frame_list.size() - 1;
@@ -36,6 +41,9 @@ public:
 
     void set_position(const Vector2& position)
     {
+        //调试
+        std::cout << "更新动画位置:" <<position.x<<" "<<position.y << std::endl;
+
         this->position = position;
     }
 
@@ -88,11 +96,16 @@ public:
 
     void on_update(float delta)
     {
+        //调试
+        std::cout << "更新动画 animation delta:"<<delta << std::endl;
         timer.on_update(delta);
     }
 
     void on_render(const Camera& camera)
     {
+        //调试
+        std::cout << "角色动画渲染" << std::endl;
+
         const Frame& frame = frame_list[idx_frame];
 
         Rect rect_dst;

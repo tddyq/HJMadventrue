@@ -16,6 +16,9 @@ struct Rect
 
 inline void putimage_ex(const Camera& camera, IMAGE* img, const Rect* rect_dst, const Rect* rect_src = nullptr)
 {
+    //µ÷ÊÔ
+    std::cout << "ÕýÔÚäÖÈ¾" << std::endl;
+
     static BLENDFUNCTION blend_func = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
     const Vector2& pos_camera = camera.get_position();

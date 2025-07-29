@@ -131,16 +131,7 @@ void login_to_server(HWND hwnd) {
     client->set_keep_alive(true);
 
     httplib::Result result = client->Post("/login");
-
-    if (!result) {
-        // 获取具体错误信息
-        auto err = result.error();
-        std::string msg = "连接失败: " + httplib::to_string(err);
-        MessageBoxA(hwnd, msg.c_str(), "错误详情", MB_OK | MB_ICONERROR);
-    }
-    else if (result->status != 200) {
-        MessageBox(hwnd, _T("服务器返回错误"), _T("登录失败"), MB_OK | MB_ICONERROR);
-    }
+ 
     if (!result || result->status != 200) {
         MessageBox(hwnd, _T("无法连接到服务器"), _T("拒绝加入"), MB_OK | MB_ICONERROR);
         exit(-1);
@@ -247,6 +238,10 @@ int main(int argc, char** argv) {
             if (msg.message == WM_CHAR && idx_line < str_line_list.size()) {
                 const std::string& str_line = str_line_list[idx_line];
                 if (str_line[idx_char] == msg.ch) {
+                    
+                    //调试
+                    std::cout << "输入正确,更新progress" << std::endl;
+
                     switch (rand() % 4) {
                     case 0:play_audio(_T("click_1")); break;
                     case 1:play_audio(_T("click_2")); break;
@@ -267,8 +262,14 @@ int main(int argc, char** argv) {
         /////////////////处理游戏更新////////////////
         steady_clock::time_point frame_start = steady_clock::now();
         duration<float> delta = duration<float>(frame_start - last_tick);
+        
+        //调试
+        std::cout << "delta:" << delta.count() << std::endl;
 
         if (stage == Stage::Waiting) {
+            //调试
+            std:: cout << "等待中" << std::endl;
+            
             if (progress_1 >= 0 && progress_2 >= 0)
                 stage = Stage::Ready;
         }
@@ -299,101 +300,115 @@ int main(int argc, char** argv) {
 
             camera_scene.look_at((id_player == 1)
                 ? player_1.get_position() : player_2.get_position());
-        }
-        ///////////////渲染部分/////////////
-        setbkcolor(RGB(0, 0, 0));
-        cleardevice();
 
-        if (stage == Stage::Waiting) {
-            settextcolor(RGB(195, 195, 195));
+
+            //调试
+            std::cout << "stage:" << (stage==Stage::Racing) << std::endl;
+
+            ///////////////渲染部分/////////////
+            setbkcolor(RGB(0, 0, 0));
             cleardevice();
-        }
-        else {
-            //绘制背景图
-            static const Rect rect_bg = {
-                0,0,
-                img_background.getwidth(),
-                img_background.getheight()
-            };
-            putimage_ex(camera_scene, &img_background, &rect_bg);
-        }
-        //绘制背景图
-        if (player_1.get_position().y > player_2.get_position().y) {
-            player_2.on_render(camera_scene);
-            player_1.on_render(camera_scene);
-        }
-        else {
-            player_1.on_render(camera_scene);
-            player_2.on_render(camera_scene);
-        }
-        //绘制倒计时
-        switch (val_countdown) {
-        case 3: {
-            static const Rect rect_ui_3 = {
-                1280 / 2 - img_ui_3.getwidth() / 2,
-                720 / 2 - img_ui_3.getheight() / 2,
-                img_ui_3.getwidth(),img_ui_3.getheight()
-            };
-            putimage_ex(camera_ui, &img_ui_3, &rect_ui_3);
-        }
-              break;
-        case 2: {
-            static const Rect rect_ui_2 = {
-                1280 / 2 - img_ui_2.getwidth() / 2,
-                720 / 2 - img_ui_2.getheight() / 2,
-                img_ui_2.getwidth(),img_ui_3.getheight()
-            };
-            putimage_ex(camera_ui, &img_ui_2, &rect_ui_2);
-        }
-              break;
 
-        case 1: {
-            static const Rect rect_ui_1 = {
-                1280 / 2 - img_ui_1.getwidth() / 2,
-                720 / 2 - img_ui_1.getheight() / 2,
-                img_ui_1.getwidth(),img_ui_3.getheight()
-            };
-            putimage_ex(camera_ui, &img_ui_1, &rect_ui_1);
-        }
-              break;
-        case 0: {
-            static const Rect rect_ui_fight = {
-                1280 / 2 - img_ui_fight.getwidth() / 2,
-                720 / 2 - img_ui_fight.getheight() / 2,
-                img_ui_fight.getwidth(),img_ui_fight.getheight()
-            };
-            putimage_ex(camera_ui, &img_ui_1, &rect_ui_fight);
-        }
-              break;
-        default:break;
-        }
-        //绘制界面
-        if (stage == Stage::Racing) {
-            static const Rect rect_textbox = {
-                0,
-                720 - img_ui_textbox.getheight(),
-                img_ui_textbox.getwidth(),
-                img_ui_textbox.getheight()
-            };
-            static std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
-            std::wstring wstr_line = convert.from_bytes(str_line_list[idx_line]);
-            std::wstring wstr_completed = convert.from_bytes(str_line_list[idx_line].substr(0, idx_char));
-            putimage_ex(camera_ui, &img_ui_textbox, &rect_textbox);
-            settextcolor(RGB(125, 125, 125));
-            outtextxy(185 + 2, rect_textbox.y + 65 + 2, wstr_line.c_str());
-            settextcolor(RGB(25, 25, 25));
-            outtextxy(185, rect_textbox.y + 65, wstr_line.c_str());
-            settextcolor(RGB(0, 149, 217));
-            outtextxy(185, rect_textbox.y + 65, wstr_completed.c_str());
+            if (stage == Stage::Waiting) {
+                settextcolor(RGB(195, 195, 195));
+                outtextxy(15, 675, _T("比赛即将开始,等待其他玩家加入"));
+                //调试
+                std::cout << "已绘制等待" << std::endl;
+            }
+            else {
+                //绘制背景图
+                static const Rect rect_bg = {
+                    0,0,
+                    img_background.getwidth(),
+                    img_background.getheight()
+                };
+                putimage_ex(camera_scene, &img_background, &rect_bg);
 
-            FlushBatchDraw();
-            last_tick = frame_start;
-            nanoseconds sleep_duration = frame_duration - (steady_clock::now() - frame_start);
-            if (sleep_duration > nanoseconds(0))
-                std::this_thread::sleep_for(sleep_duration);
+                //绘制玩家
+                if (player_1.get_position().y > player_2.get_position().y) {
+                    //调试
+                    std::cout << "绘制玩家" << std::endl;
+
+                    player_2.on_render(camera_scene);
+                    player_1.on_render(camera_scene);
+                }
+                else {
+                    player_1.on_render(camera_scene);
+                    player_2.on_render(camera_scene);
+                }
+                //绘制倒计时
+                switch (val_countdown) {
+                case 3: {
+                    static const Rect rect_ui_3 = {
+                        1280 / 2 - img_ui_3.getwidth() / 2,
+                        720 / 2 - img_ui_3.getheight() / 2,
+                        img_ui_3.getwidth(),img_ui_3.getheight()
+                    };
+                    putimage_ex(camera_ui, &img_ui_3, &rect_ui_3);
+                }
+                      break;
+                case 2: {
+                    static const Rect rect_ui_2 = {
+                        1280 / 2 - img_ui_2.getwidth() / 2,
+                        720 / 2 - img_ui_2.getheight() / 2,
+                        img_ui_2.getwidth(),img_ui_3.getheight()
+                    };
+                    putimage_ex(camera_ui, &img_ui_2, &rect_ui_2);
+                }
+                      break;
+
+                case 1: {
+                    static const Rect rect_ui_1 = {
+                        1280 / 2 - img_ui_1.getwidth() / 2,
+                        720 / 2 - img_ui_1.getheight() / 2,
+                        img_ui_1.getwidth(),img_ui_3.getheight()
+                    };
+                    putimage_ex(camera_ui, &img_ui_1, &rect_ui_1);
+                }
+                      break;
+                case 0: {
+                    static const Rect rect_ui_fight = {
+                        1280 / 2 - img_ui_fight.getwidth() / 2,
+                        720 / 2 - img_ui_fight.getheight() / 2,
+                        img_ui_fight.getwidth(),img_ui_fight.getheight()
+                    };
+                    putimage_ex(camera_ui, &img_ui_1, &rect_ui_fight);
+                }
+                      break;
+                default:break;
+                }
+                //绘制界面
+                if (stage == Stage::Racing) {
+                    static const Rect rect_textbox = {
+                        0,
+                        720 - img_ui_textbox.getheight(),
+                        img_ui_textbox.getwidth(),
+                        img_ui_textbox.getheight()
+                    };
+                    static std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
+                    std::wstring wstr_line = convert.from_bytes(str_line_list[idx_line]);
+                    std::wstring wstr_completed = convert.from_bytes(str_line_list[idx_line].substr(0, idx_char));
+                    putimage_ex(camera_ui, &img_ui_textbox, &rect_textbox);
+                    settextcolor(RGB(125, 125, 125));
+                    outtextxy(185 + 2, rect_textbox.y + 65 + 2, wstr_line.c_str());
+                    settextcolor(RGB(25, 25, 25));
+                    outtextxy(185, rect_textbox.y + 65, wstr_line.c_str());
+                    settextcolor(RGB(0, 149, 217));
+                    outtextxy(185, rect_textbox.y + 65, wstr_completed.c_str());
+                }
+
+            }
         }
-        EndBatchDraw();
+       
+        FlushBatchDraw();
+
+        last_tick = frame_start;
+        nanoseconds sleep_duration = frame_duration - (steady_clock::now() - frame_start);
+        if (sleep_duration > nanoseconds(0))
+            std::this_thread::sleep_for(sleep_duration);
 
     }
+    EndBatchDraw();
+
 	return 0;
 }

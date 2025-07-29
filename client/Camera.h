@@ -25,6 +25,9 @@ public:
 		}
 	}
 	void set_size(const Vector2 size) {
+		//调试
+		std::cout << "更新摄像机大小" << std::endl;
+
 		this->size = size;
 	}
 	const Vector2& get_size() const {
@@ -34,6 +37,8 @@ public:
 		return position;
 	}
 	void set_position(const Vector2& pos) {
+		//调试
+		std::cout << "更新摄像机位置:" <<pos.x<<" "<<pos.y << std::endl;
 		position = pos;
 	}
 	void look_at(const Vector2& target) {

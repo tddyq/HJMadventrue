@@ -40,9 +40,16 @@ public:
 
     void on_update(float delta)
     {
+        //调试
+        std::cout << "定时器开始更新" << std::endl;
+
         if (paused) return;
 
         pass_time += delta;
+
+        //调试
+        std::cout << "定时器passtime: "<<pass_time<<" "<<"Timer delta: " << delta << std::endl;
+
         if (pass_time >= wait_time)
         {
             bool can_shot = (!one_shot || (one_shot && !shotted));
