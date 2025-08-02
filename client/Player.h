@@ -9,6 +9,7 @@ public:
 		Up,Down,Left,Right
 	};
 public:
+	Player(){}
 	Player(Atlas* atlas_idle_up,Atlas* atlas_idle_down,Atlas* atlas_idle_left,
 	 Atlas* atlas_idle_right,Atlas* atlas_run_up,Atlas* atlas_run_down,Atlas* atlas_run_left,
 		Atlas* atlas_run_right) {
@@ -46,6 +47,41 @@ public:
 	}
 
 	~Player() = default;
+	void setAtlas(Atlas* atlas_idle_up, Atlas* atlas_idle_down, Atlas* atlas_idle_left,
+		Atlas* atlas_idle_right, Atlas* atlas_run_up, Atlas* atlas_run_down, Atlas* atlas_run_left,
+		Atlas* atlas_run_right) {
+		anim_idle_up.set_loop(true);
+		anim_idle_up.set_interval(0.1f);
+		anim_idle_up.add_frame(atlas_idle_up);
+
+		anim_idle_down.set_loop(true);
+		anim_idle_down.set_interval(0.1f);
+		anim_idle_down.add_frame(atlas_idle_down);
+
+		anim_idle_left.set_loop(true);
+		anim_idle_left.set_interval(0.1f);
+		anim_idle_left.add_frame(atlas_idle_left);
+
+		anim_idle_right.set_loop(true);
+		anim_idle_right.set_interval(0.1f);
+		anim_idle_right.add_frame(atlas_idle_right);
+
+		anim_run_up.set_loop(true);
+		anim_run_up.set_interval(0.1f);
+		anim_run_up.add_frame(atlas_run_up);
+
+		anim_run_down.set_loop(true);
+		anim_run_down.set_interval(0.1f);
+		anim_run_down.add_frame(atlas_run_down);
+
+		anim_run_left.set_loop(true);
+		anim_run_left.set_interval(0.1f);
+		anim_run_left.add_frame(atlas_run_left);
+
+		anim_run_right.set_loop(true);
+		anim_run_right.set_interval(0.1f);
+		anim_run_right.add_frame(atlas_run_right);
+	}
 	void on_update(float delta) {
 		if (!position.approx(pos_target))
 			velocity = (pos_target - position).normalize() * SPEED_RUN;

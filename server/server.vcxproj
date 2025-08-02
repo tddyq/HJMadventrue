@@ -19,7 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="server.cpp" />
+    <ClCompile Include="server.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="server2.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CServer.h" />
+    <ClInclude Include="HttplibNetworkAdapter.h" />
+    <ClInclude Include="INetworkAdapter.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

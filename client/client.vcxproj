@@ -127,12 +127,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="client.cpp" />
+    <ClCompile Include="client.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="client2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Animation.h" />
     <ClInclude Include="Atlas.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CClient.h" />
+    <ClInclude Include="IClient.h" />
     <ClInclude Include="Path.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Timer.h" />

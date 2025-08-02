@@ -67,6 +67,54 @@ std::vector<std::string> str_line_list;  //行文本列表
 std::string str_address;              //服务器地址
 httplib::Client* client = nullptr;    //http客户端对象
 
+void check_server_connection(HWND hwnd) {
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        MessageBox(hwnd, _T("WSAStartup 失败"), _T("网络错误"), MB_OK | MB_ICONERROR);
+        exit(-1);
+    }
+
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock == INVALID_SOCKET) {
+        MessageBox(hwnd, _T("创建 socket 失败"), _T("网络错误"), MB_OK | MB_ICONERROR);
+        WSACleanup();
+        exit(-1);
+    }
+
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(25565);
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+
+    // 设置超时
+    DWORD timeout = 3000; // 3秒
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
+
+    if (connect(sock, (sockaddr*)&addr, sizeof(addr))) {
+        int error = WSAGetLastError();
+        std::wstring msg = L"无法连接到服务器\n";
+        msg += L"IP: 127.0.0.1\n";
+        msg += L"端口: 25565\n\n";
+        msg += L"错误代码: " + std::to_wstring(error) + L"\n";
+
+        switch (error) {
+        case WSAECONNREFUSED: msg += L"连接被拒绝 (服务器未运行?)"; break;
+        case WSAETIMEDOUT: msg += L"连接超时"; break;
+        case WSAEADDRNOTAVAIL: msg += L"地址不可用"; break;
+        default: msg += L"未知网络错误";
+        }
+
+        MessageBox(hwnd, msg.c_str(), _T("连接测试失败"), MB_OK | MB_ICONERROR);
+        closesocket(sock);
+        WSACleanup();
+        exit(-1);
+    }
+
+    closesocket(sock);
+    WSACleanup();
+}
+
 void load_resources(HWND hwnd)
 {
     // 加载字体资源
@@ -127,11 +175,30 @@ void load_resources(HWND hwnd)
     file.close();
 }
 void login_to_server(HWND hwnd) {
-    client = new httplib::Client("localhost", 25565);
+    check_server_connection(hwnd); // 先检查基础连接
+
+    client = new httplib::Client("127.0.0.1", 25565);
     client->set_keep_alive(true);
 
     httplib::Result result = client->Post("/login");
  
+    if (!result) {
+        // 添加详细的错误信息
+        std::string error_msg = "HTTP错误: ";
+        error_msg += httplib::to_string(result.error());
+        error_msg += "\n尝试连接: 127.0.0.1:25565";
+
+        // 转换为宽字符串
+        int wchars_num = MultiByteToWideChar(CP_UTF8, 0, error_msg.c_str(), -1, NULL, 0);
+        wchar_t* wstr = new wchar_t[wchars_num];
+        MultiByteToWideChar(CP_UTF8, 0, error_msg.c_str(), -1, wstr, wchars_num);
+
+        MessageBox(hwnd, wstr, _T("连接失败"), MB_OK | MB_ICONERROR);
+        delete[] wstr;
+        exit(-1);
+    }
+
+
     if (!result || result->status != 200) {
         MessageBox(hwnd, _T("无法连接到服务器"), _T("拒绝加入"), MB_OK | MB_ICONERROR);
         exit(-1);
