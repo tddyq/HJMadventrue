@@ -23,7 +23,7 @@ class CClient:public IClient
 {
 public:
     CClient(int size) : player_progress(size + 1, -1), players(size+1), progressArraySize(size + 1) {
-        init(); 
+        
     }
     ~CClient() = default;
 
@@ -96,12 +96,17 @@ public:
     }
     void uploadProgressToServer()override {
         std::thread([&]() {
+            
             try {
                 while (true) {
                     using namespace std::chrono;
                     //为每一个服务器确定路由
                     std::string route = "/update_" + std::to_string(id_player);
-                    std::string body = std::to_string(player_progress[id_player]);
+                    std::string body;
+                    {
+                        std::lock_guard<std::mutex> lock(progress_mutex);
+                        body = std::to_string(player_progress[id_player]);
+                    }
                     //打印调试
                     std::cout << "Sending request to route: " << route << " with body: " << body << std::endl;
                    
@@ -220,7 +225,7 @@ public:
         camera_scene.set_size({ 1280, 720 });
         
 
-        // 倒计时定时器设置（来自第2张图）
+        // 倒计时定时器设置
         timer_countdown.set_one_shot(false);
         timer_countdown.set_wait_time(1.0f);
         timer_countdown.set_on_timeout([&]()
@@ -237,6 +242,30 @@ public:
                     play_audio(_T("bgm"), true); // true表示循环播放
                     break;
                 }
+            });
+        //自动行走定时器设置-调试
+        timer_step.set_one_shot(false);
+        timer_step.set_wait_time(1.0f);
+        timer_step.set_on_timeout([&]() {
+            
+            static std::random_device seed;       // 只会创建一次
+            static std::ranlux48 engine(seed());  // 只会创建一次
+            static std::uniform_int_distribution<> distrib(1, 10);  // 只会创建一次
+
+            int random = distrib(engine);         // 生成随机数
+
+
+            {
+                std::lock_guard<std::mutex> lock(progress_mutex);
+                player_progress[id_player] += random;
+                progressBackup += random;
+            }
+
+            idx_char += random;
+            if (idx_line < str_line_list.size() && idx_char >= str_line_list[idx_line].length()) {
+                idx_char = 0;
+                idx_line++;
+            }
             });
 
         post = 25565;
@@ -324,6 +353,7 @@ private:
         this->post = post;
     }
     void updateProgressFromJson(const std::string& body) {
+        
         try {
             // 解析 JSON 字符串
             json jsonData = json::parse(body);
@@ -333,6 +363,9 @@ private:
                 std::vector<int>  newProgresses = jsonData.get<std::vector<int>>();
                 
                 if (newProgresses.size() == progressArraySize) {
+
+                    std::lock_guard<std::mutex> lock(progress_mutex);
+
                     player_progress = std::move(newProgresses);
                     //如果数据出错使得服务器返回当前进度小于真实进度则恢复
                     if (player_progress[id_player] < progressBackup) player_progress[id_player] = progressBackup;
@@ -370,8 +403,12 @@ private:
                         // 打印当前进度信息
                         std::cout << "Player progress before increment: " << player_progress[id_player] << std::endl;
 
-                        player_progress[id_player]++;
-                        progressBackup++;
+                        {
+                            std::lock_guard<std::mutex> lock(progress_mutex);
+
+                            player_progress[id_player]++;
+                            progressBackup++;
+                        }
 
                         // 打印更新后的进度
                         std::cout << "Player progress after increment: " << player_progress[id_player] << std::endl;
@@ -393,6 +430,7 @@ private:
         }
     }
     void processGameUpdate(float delta) {
+        
         try {
             // 调试入口
             std::cout << "===== 开始处理游戏更新 delta=" << delta << " =====" << std::endl;
@@ -400,7 +438,7 @@ private:
             if (stage == Stage::Waiting) {
                 
                 for (int i = 0; i < progressArraySize - 1; i++) {
-                    if (player_progress[i] != 0) {
+                    if (player_progress[i] < 0) {
                         
                         return;
                     }
@@ -412,8 +450,13 @@ private:
             {
                 std::cout << "当前状态: " << ((stage == Stage::Ready) ? "Ready" : "其他") << std::endl;
 
-                if (stage == Stage::Ready)
+                if (stage == Stage::Ready) {
                     timer_countdown.on_update(delta);
+                }
+                else if (stage == Stage::Racing) {
+                    timer_step.on_update(delta);//调试-自动行走
+                }
+                    
 
                 // 调试游戏结束条件
                 std::cout << "进度检查: 备份进度=" << progressBackup <<" 字符总数: "<<num_total_char<< std::endl;
@@ -433,14 +476,17 @@ private:
 
                 // 调试玩家位置更新
                 std::cout << "更新玩家目标位置 | 玩家数量=" << progressArraySize - 1 << std::endl;
-                for (int i = 0; i < progressArraySize - 1; i++) {
-                    float progress = (float)player_progress[i] / num_total_char;
-                    players[i].set_target(path.get_position_at_progress(progress));
-                    
-                    
-                    std::cout << "玩家" << i << " 进度=" << player_progress[i]<< " 归一化=" << progress << std::endl;
-                    
-                   
+
+                {
+                    std::lock_guard<std::mutex> lock(progress_mutex);
+
+                    for (int i = 0; i < progressArraySize - 1; i++) {
+                        float progress = (float)player_progress[i] / num_total_char;
+                        players[i].set_target(path.get_position_at_progress(progress));
+
+
+                        std::cout << "玩家" << i << " 进度=" << player_progress[i] << " 归一化=" << progress << std::endl;
+                    }
                 }
 
                 // 调试玩家更新
@@ -577,19 +623,24 @@ private:
                         // 字符串转换可能抛出异常
                         try {
                             static std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
-                            std::wstring wstr_line = convert.from_bytes(str_line_list[idx_line]);
-                            std::wstring wstr_completed = convert.from_bytes(str_line_list[idx_line].substr(0, idx_char));
+                            if (idx_line < str_line_list.size()) {
+                                std::wstring wstr_line = convert.from_bytes(str_line_list[idx_line]);
+                                std::wstring wstr_completed = convert.from_bytes(str_line_list[idx_line].substr(0, idx_char));
 
-                            putimage_ex(camera_ui, &img_ui_textbox, &rect_textbox);
 
-                            settextcolor(RGB(125, 125, 125));
-                            outtextxy(185 + 2, rect_textbox.y + 65 + 2, wstr_line.c_str());
+                                putimage_ex(camera_ui, &img_ui_textbox, &rect_textbox);
 
-                            settextcolor(RGB(25, 25, 25));
-                            outtextxy(185, rect_textbox.y + 65, wstr_line.c_str());
+                                settextcolor(RGB(125, 125, 125));
+                                outtextxy(185 + 2, rect_textbox.y + 65 + 2, wstr_line.c_str());
 
-                            settextcolor(RGB(0, 149, 217));
-                            outtextxy(185, rect_textbox.y + 65, wstr_completed.c_str());
+                                settextcolor(RGB(25, 25, 25));
+                                outtextxy(185, rect_textbox.y + 65, wstr_line.c_str());
+
+                                settextcolor(RGB(0, 149, 217));
+                                outtextxy(185, rect_textbox.y + 65, wstr_completed.c_str());
+                            }
+                            
+
 
                             std::cout << "[DEBUG] UI text rendered successfully" << std::endl;
                         }
@@ -684,5 +735,9 @@ private:
     ExMessage msg;
     Timer timer_countdown;
     Camera camera_ui, camera_scene;
+private:
+    //定时器-自动行走调试
+    Timer timer_step;
+    std::mutex progress_mutex;
 };
 

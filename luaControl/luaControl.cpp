@@ -11,6 +11,14 @@
         return false; \
     }
 
+// Lua休眠函数
+static int lua_sleep(lua_State * L) {
+    double seconds = luaL_checknumber(L, 1);
+    DWORD milliseconds = static_cast<DWORD>(seconds * 1000);
+    Sleep(milliseconds);
+    return 0;
+}
+
 // 初始化Lua环境
 bool init_lua(lua_State* L) {
     // 加载标准库
@@ -26,6 +34,9 @@ bool init_lua(lua_State* L) {
     lua_pushstring(L, current_path.c_str());
     lua_setfield(L, -3, "path");
     lua_pop(L, 2);  // 弹出package和原始path值
+
+    // 注册高效休眠函数
+    lua_register(L, "win_sleep", lua_sleep);
 
     return true;
 }
@@ -71,5 +82,7 @@ int main() {
     std::cout << "\nControl script completed. Press Enter to exit...";
     std::cin.get();
 
+
+    system("pause");
     return 0;
 }

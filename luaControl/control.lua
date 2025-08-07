@@ -1,5 +1,6 @@
 local config = dofile("start.lua")
 
+
 print("========================================")
 print("Lua Control Center")
 print("========================================")
@@ -51,17 +52,30 @@ local function start_server()
     }
     
     -- 使用正确的命令格式设置工作目录
-    local cmd = string.format('start "" /B /D "%s" "%s" %s',
+    serverCmd = string.format('start "" /B /D "%s" "%s" %s >nul 2>&1',
         working_dir,  -- 设置工作目录
         exe_path,
         table.concat(args, " ")
     )
     
-    print("[SERVER] Starting: " .. cmd)
+    print("[SERVER] Starting: " .. serverCmd)
     print(string.format("[SERVER] 工作目录: %s", working_dir))
     print(string.format("[SERVER] 配置文件: %s", config_path))
-    os.execute(cmd)
+    os.execute(serverCmd)
     print(string.format("[SERVER] Started"))
+end
+
+--关闭服务器
+local function over_server()
+     print("正在关闭服务器...")
+     --使用powershell指令关闭服务器
+     os.execute([[
+  powershell -Command "Get-Process | Where-Object { $_.MainWindowTitle -match 'server\.exe' } | Stop-Process -Force"
+]])
+     os.execute([[
+  powershell -Command "Get-Process | Where-Object { $_.MainWindowTitle -match 'luaControl\.exe' } | Stop-Process -Force"
+]]) 
+     print("服务器已关闭")
 end
 
 -- 启动客户端
@@ -91,23 +105,32 @@ local function start_client(client_id)
     }
     
     -- 使用正确的命令格式设置工作目录
-    local cmd = string.format('start "" /B /D "%s" "%s" %s',
+    clientCmd = string.format('start "" /B /D "%s" "%s" %s >nul 2>&1',
         working_dir,  -- 设置工作目录
         exe_path,
         table.concat(args, " ")
     )
     
-    print(string.format("[CLIENT %d] Starting: %s", client_id, cmd))
+    print(string.format("[CLIENT %d] Starting: %s", client_id, clientCmd ))
     print(string.format("[CLIENT %d] 工作目录: %s", client_id, working_dir))
     print(string.format("[CLIENT %d] 配置文件: %s", client_id, config_path))
-    os.execute(cmd)
+    os.execute(clientCmd )
     print(string.format("[CLIENT %d] Started", client_id))
+end
+
+--关闭客户端
+local function over_client()
+     print("正在关闭服务器...")
+     --使用powershell指令关闭服务器
+    os.execute([[
+  powershell -Command "Get-Process | Where-Object { $_.MainWindowTitle -match 'client\.exe' } | Stop-Process -Force"
+]])
+   print("服务器已关闭")
 end
 
 -- 延迟函数
 local function sleep(seconds)
-    local start = os.clock()
-    while os.clock() - start < seconds do end
+      win_sleep(seconds)  -- 调用C++注册的高效休眠
 end
 
 -- 主控制流程
@@ -122,3 +145,9 @@ end
 print("----------------------------------------")
 print("All processes started successfully!")
 print("========================================")
+
+--运行100s后关闭服务器与客户端
+
+sleep(config.delay.server_work)
+over_server()
+over_client()

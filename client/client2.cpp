@@ -6,7 +6,8 @@ int main(int argc, char** argv) {
     _getcwd(cwd, sizeof(cwd));
     std::cout << "当前工作目录: " << cwd << std::endl;
 
-    CClient client(2);
+    CClient client(10);
+    client.init();
     client.mainLoop();
     return 0;
 }

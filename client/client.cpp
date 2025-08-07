@@ -453,15 +453,20 @@ int main(int argc, char** argv) {
                         img_ui_textbox.getheight()
                     };
                     static std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
-                    std::wstring wstr_line = convert.from_bytes(str_line_list[idx_line]);
-                    std::wstring wstr_completed = convert.from_bytes(str_line_list[idx_line].substr(0, idx_char));
-                    putimage_ex(camera_ui, &img_ui_textbox, &rect_textbox);
-                    settextcolor(RGB(125, 125, 125));
-                    outtextxy(185 + 2, rect_textbox.y + 65 + 2, wstr_line.c_str());
-                    settextcolor(RGB(25, 25, 25));
-                    outtextxy(185, rect_textbox.y + 65, wstr_line.c_str());
-                    settextcolor(RGB(0, 149, 217));
-                    outtextxy(185, rect_textbox.y + 65, wstr_completed.c_str());
+                    if (idx_line < str_line_list.size()) {
+                        std::wstring wstr_line = convert.from_bytes(str_line_list[idx_line]);
+                        std::wstring wstr_completed = convert.from_bytes(str_line_list[idx_line].substr(0, idx_char));
+
+                        putimage_ex(camera_ui, &img_ui_textbox, &rect_textbox);
+                        settextcolor(RGB(125, 125, 125));
+                        outtextxy(185 + 2, rect_textbox.y + 65 + 2, wstr_line.c_str());
+                        settextcolor(RGB(25, 25, 25));
+                        outtextxy(185, rect_textbox.y + 65, wstr_line.c_str());
+                        settextcolor(RGB(0, 149, 217));
+                        outtextxy(185, rect_textbox.y + 65, wstr_completed.c_str());
+                    }
+                    
+                    
                 }
 
             }
