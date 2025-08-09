@@ -22,7 +22,7 @@ using json = nlohmann::json;
 class CClient:public IClient
 {
 public:
-    CClient(int size) : player_progress(size + 1, -1), players(size+1), progressArraySize(size + 1) {
+    CClient(int size) : player_progress(size + 1, -1), progressBackup(size+1,-1), players(size + 1), progressArraySize(size + 1) {
         
     }
     ~CClient() = default;
@@ -30,8 +30,7 @@ public:
     void login_to_server()override {
         check_server_connection(hwnd); // 先检查基础连接
         
-        //调试
-        std::cout << "address: " << str_address << "post: " << post << std::endl;
+        
 
         client = new httplib::Client(str_address, post);
         client->set_keep_alive(true);
@@ -49,8 +48,7 @@ public:
             wchar_t* wstr = new wchar_t[wchars_num];
             MultiByteToWideChar(CP_UTF8, 0, error_msg.c_str(), -1, wstr, wchars_num);
 
-            //调试
-            std::cout << "连接失败: " + error_msg << std::endl;
+            
 
             MessageBox(hwnd, wstr, _T("连接失败"), MB_OK | MB_ICONERROR);
             delete[] wstr;
@@ -58,8 +56,7 @@ public:
         }
 
         if (!result || result->status != 200) {
-            //调试
-            std::cout << "无法连接到服务器,拒绝加入" << std::endl;
+            
 
             MessageBox(hwnd, _T("无法连接到服务器"), _T("拒绝加入"), MB_OK | MB_ICONERROR);
             exit(-1);
@@ -73,10 +70,10 @@ public:
         }
         player_progress[progressArraySize - 1] = 0;
         player_progress[id_player] = 0;
-        progressBackup = 0;
+        progressBackup[progressArraySize - 1] = 0;
+        progressBackup[id_player] = 0;
 
-        //调试
-        std::cout << "服务器连接成功" << std::endl;
+        
 
         //发送 POST 请求到 /query_text 路径，并获取服务器返回的文本内容
         str_text = client->Post("/query_text")->body;
@@ -88,8 +85,7 @@ public:
             str_line_list.push_back(str_line);
             num_total_char += (int)str_line.length();
         }
-        //调试
-        std::cout <<"字符总数: " << num_total_char << std::endl;
+        
 
 
         uploadProgressToServer();
@@ -103,17 +99,12 @@ public:
                     //为每一个服务器确定路由
                     std::string route = "/update_" + std::to_string(id_player);
                     std::string body;
-                    {
-                        std::lock_guard<std::mutex> lock(progress_mutex);
-                        body = std::to_string(player_progress[id_player]);
-                    }
-                    //打印调试
-                    std::cout << "Sending request to route: " << route << " with body: " << body << std::endl;
+                    
+                    body = std::to_string(progressBackup[id_player]);
+                    
                    
                     httplib::Result result = client->Post(route, body, "text/plain");
-                    //打印调试
-                    if (result) std::cout << "Received response: " << result->status << std::endl;
-                    else std::cout << "Request failed, error: " << result.error() << std::endl;
+                    
 
                     getProgressFromServer(result);
                     std::this_thread::sleep_for(nanoseconds(1000000000 / 10));
@@ -254,12 +245,7 @@ public:
 
             int random = distrib(engine);         // 生成随机数
 
-
-            {
-                std::lock_guard<std::mutex> lock(progress_mutex);
-                player_progress[id_player] += random;
-                progressBackup += random;
-            }
+            progressBackup[id_player] += random;
 
             idx_char += random;
             if (idx_line < str_line_list.size() && idx_char >= str_line_list[idx_line].length()) {
@@ -273,7 +259,7 @@ public:
     void mainLoop()override {
         using namespace std::chrono;
         // 帧率控制设置
-        const std::chrono::nanoseconds frame_duration(1000000000 / 144);
+        const std::chrono::nanoseconds frame_duration(1000000000 / 60);
         steady_clock::time_point last_tick = steady_clock::now();
         BeginBatchDraw();  // 开始批量绘制操作
         while(true){
@@ -283,8 +269,7 @@ public:
             steady_clock::time_point frame_start = steady_clock::now();
             duration<float> delta = duration<float>(frame_start - last_tick);
 
-            //调试
-            std::cout << "delta:" << delta.count() << std::endl;
+            
             processGameUpdate(delta.count());
 
             ////////////////处理游戏渲染/////////////////
@@ -368,7 +353,9 @@ private:
 
                     player_progress = std::move(newProgresses);
                     //如果数据出错使得服务器返回当前进度小于真实进度则恢复
-                    if (player_progress[id_player] < progressBackup) player_progress[id_player] = progressBackup;
+                    if (player_progress[id_player] >= progressBackup[id_player]) {
+                        progressBackup = player_progress;
+                    }
 
                 }
             }
@@ -401,17 +388,12 @@ private:
                         }
 
                         // 打印当前进度信息
-                        std::cout << "Player progress before increment: " << player_progress[id_player] << std::endl;
+                        std::cout << "Player progress before increment: " << progressBackup[id_player] << std::endl;
 
-                        {
-                            std::lock_guard<std::mutex> lock(progress_mutex);
-
-                            player_progress[id_player]++;
-                            progressBackup++;
-                        }
+                        progressBackup[id_player]++;
 
                         // 打印更新后的进度
-                        std::cout << "Player progress after increment: " << player_progress[id_player] << std::endl;
+                        std::cout << "Player progress after increment: " << progressBackup[id_player] << std::endl;
 
                         idx_char++;
                         if (idx_char >= str_line.length()) {
@@ -432,23 +414,22 @@ private:
     void processGameUpdate(float delta) {
         
         try {
-            // 调试入口
-            std::cout << "===== 开始处理游戏更新 delta=" << delta << " =====" << std::endl;
+            
 
             if (stage == Stage::Waiting) {
                 
                 for (int i = 0; i < progressArraySize - 1; i++) {
-                    if (player_progress[i] < 0) {
+                    if (progressBackup[i] < 0) {
                         
                         return;
                     }
                 }
                 stage = Stage::Ready;
-                std::cout << "状态变更: Waiting -> Ready" << std::endl;
+                
             }
             else
             {
-                std::cout << "当前状态: " << ((stage == Stage::Ready) ? "Ready" : "其他") << std::endl;
+               
 
                 if (stage == Stage::Ready) {
                     timer_countdown.on_update(delta);
@@ -458,16 +439,15 @@ private:
                 }
                     
 
-                // 调试游戏结束条件
-                std::cout << "进度检查: 备份进度=" << progressBackup <<" 字符总数: "<<num_total_char<< std::endl;
-                if (progressBackup >= num_total_char) {
+
+                if (progressBackup[id_player] >= num_total_char) {
                     
                     stop_audio(_T("bgm"));
                     play_audio((id_player == 1) ? _T("1p_win") : _T("2p_win"));
                     MessageBox(hwnd, _T("赢麻麻"), _T("游戏结束"), MB_OK | MB_ICONINFORMATION);
                     exit(0);
                 }
-                else if (player_progress[progressArraySize - 1] >= num_total_char) {
+                else if (progressBackup[progressArraySize - 1] >= num_total_char) {
                     
                     stop_audio(_T("bgm"));
                     MessageBox(hwnd, _T("输光光"), _T("游戏结束"), MB_OK | MB_ICONINFORMATION);
@@ -481,11 +461,9 @@ private:
                     std::lock_guard<std::mutex> lock(progress_mutex);
 
                     for (int i = 0; i < progressArraySize - 1; i++) {
-                        float progress = (float)player_progress[i] / num_total_char;
+                        float progress = (float)progressBackup[i] / num_total_char;
                         players[i].set_target(path.get_position_at_progress(progress));
 
-
-                        std::cout << "玩家" << i << " 进度=" << player_progress[i] << " 归一化=" << progress << std::endl;
                     }
                 }
 
@@ -494,8 +472,6 @@ private:
 
                 for (int i = 0; i < progressArraySize - 1; i++) {
                     players[i].on_update(delta);
-
-                    std::cout << "玩家" << i << " 位置更新完成" << std::endl;
                 }
 
                 // 调试摄像机更新
@@ -512,158 +488,104 @@ private:
             std::cerr << "!!! 未知类型异常捕获" << std::endl;
         }
 
-        std::cout << "===== 结束游戏更新处理 =====" << std::endl;
+
     }
     void processGameRander() {
-        std::cout << "[DEBUG] Entering processGameRander" << std::endl;
+        ///////////////渲染部分/////////////
+        setbkcolor(RGB(0, 0, 0));
+        cleardevice();
 
-        try {
-            std::cout << "stage:" << (stage == Stage::Racing) << std::endl;
+        if (stage == Stage::Waiting) {
+            settextcolor(RGB(195, 195, 195));
+            outtextxy(15, 675, _T("比赛即将开始,等待其他玩家加入"));
+        }
+        else {
+            //绘制背景图
+            static const Rect rect_bg = {
+                0, 0,
+                img_background.getwidth(),
+                img_background.getheight()
+            };
+            putimage_ex(camera_scene, &img_background, &rect_bg);
 
-            ///////////////渲染部分/////////////
-            setbkcolor(RGB(0, 0, 0));
-            cleardevice();
-
-            if (stage == Stage::Waiting) {
-                std::cout << "[DEBUG] Rendering waiting stage" << std::endl;
-                settextcolor(RGB(195, 195, 195));
-                outtextxy(15, 675, _T("比赛即将开始,等待其他玩家加入"));
-                //调试
-                std::cout << "已绘制等待" << std::endl;
+            //绘制玩家
+            for (int i = 0; i < progressArraySize - 1; i++) {
+                players[i].on_render(camera_scene);
             }
-            else {
-                std::cout << "[DEBUG] Rendering racing stage" << std::endl;
 
-                //绘制背景图
-                try {
-                    static const Rect rect_bg = {
-                        0,0,
-                        img_background.getwidth(),
-                        img_background.getheight()
-                    };
-                    putimage_ex(camera_scene, &img_background, &rect_bg);
-                    std::cout << "[DEBUG] Background rendered successfully" << std::endl;
-                }
-                catch (const std::exception& e) {
-                    std::cerr << "[ERROR] Background rendering failed: " << e.what() << std::endl;
-                }
+            //绘制倒计时
+            switch (val_countdown) {
+            case 3: {
+                static const Rect rect_ui_3 = {
+                    1280 / 2 - img_ui_3.getwidth() / 2,
+                    720 / 2 - img_ui_3.getheight() / 2,
+                    img_ui_3.getwidth(), img_ui_3.getheight()
+                };
+                putimage_ex(camera_ui, &img_ui_3, &rect_ui_3);
+            }
+                  break;
+            case 2: {
+                static const Rect rect_ui_2 = {
+                    1280 / 2 - img_ui_2.getwidth() / 2,
+                    720 / 2 - img_ui_2.getheight() / 2,
+                    img_ui_2.getwidth(), img_ui_3.getheight()
+                };
+                putimage_ex(camera_ui, &img_ui_2, &rect_ui_2);
+            }
+                  break;
 
-                //绘制玩家
-                try {
-                    for (int i = 0; i < progressArraySize - 1; i++) {
-                        players[i].on_render(camera_scene);
-                    }
-                    std::cout << "[DEBUG] Players rendered successfully" << std::endl;
-                }
-                catch (const std::exception& e) {
-                    std::cerr << "[ERROR] Player rendering failed: " << e.what() << std::endl;
-                }
+            case 1: {
+                static const Rect rect_ui_1 = {
+                    1280 / 2 - img_ui_1.getwidth() / 2,
+                    720 / 2 - img_ui_1.getheight() / 2,
+                    img_ui_1.getwidth(), img_ui_3.getheight()
+                };
+                putimage_ex(camera_ui, &img_ui_1, &rect_ui_1);
+            }
+                  break;
+            case 0: {
+                static const Rect rect_ui_fight = {
+                    1280 / 2 - img_ui_fight.getwidth() / 2,
+                    720 / 2 - img_ui_fight.getheight() / 2,
+                    img_ui_fight.getwidth(), img_ui_fight.getheight()
+                };
+                putimage_ex(camera_ui, &img_ui_1, &rect_ui_fight);
+            }
+                  break;
+            default:
+                break;
+            }
 
-                //绘制倒计时
-                try {
-                    std::cout << "[DEBUG] Rendering countdown: " << val_countdown << std::endl;
-                    switch (val_countdown) {
-                    case 3: {
-                        static const Rect rect_ui_3 = {
-                            1280 / 2 - img_ui_3.getwidth() / 2,
-                            720 / 2 - img_ui_3.getheight() / 2,
-                            img_ui_3.getwidth(),img_ui_3.getheight()
-                        };
-                        putimage_ex(camera_ui, &img_ui_3, &rect_ui_3);
-                    }
-                          break;
-                    case 2: {
-                        static const Rect rect_ui_2 = {
-                            1280 / 2 - img_ui_2.getwidth() / 2,
-                            720 / 2 - img_ui_2.getheight() / 2,
-                            img_ui_2.getwidth(),img_ui_3.getheight()
-                        };
-                        putimage_ex(camera_ui, &img_ui_2, &rect_ui_2);
-                    }
-                          break;
+            //绘制界面
+            if (stage == Stage::Racing) {
+                static const Rect rect_textbox = {
+                    0,
+                    720 - img_ui_textbox.getheight(),
+                    img_ui_textbox.getwidth(),
+                    img_ui_textbox.getheight()
+                };
 
-                    case 1: {
-                        static const Rect rect_ui_1 = {
-                            1280 / 2 - img_ui_1.getwidth() / 2,
-                            720 / 2 - img_ui_1.getheight() / 2,
-                            img_ui_1.getwidth(),img_ui_3.getheight()
-                        };
-                        putimage_ex(camera_ui, &img_ui_1, &rect_ui_1);
-                    }
-                          break;
-                    case 0: {
-                        static const Rect rect_ui_fight = {
-                            1280 / 2 - img_ui_fight.getwidth() / 2,
-                            720 / 2 - img_ui_fight.getheight() / 2,
-                            img_ui_fight.getwidth(),img_ui_fight.getheight()
-                        };
-                        putimage_ex(camera_ui, &img_ui_1, &rect_ui_fight);
-                    }
-                          break;
-                    default:
-                        std::cout << "[WARN] Unexpected countdown value: " << val_countdown << std::endl;
-                        break;
-                    }
-                }
-                catch (const std::exception& e) {
-                    std::cerr << "[ERROR] Countdown rendering failed: " << e.what() << std::endl;
-                }
+                // 字符串转换
+                static std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
+                if (idx_line < str_line_list.size()) {
+                    std::wstring wstr_line = convert.from_bytes(str_line_list[idx_line]);
+                    std::wstring wstr_completed = convert.from_bytes(str_line_list[idx_line].substr(0, idx_char));
 
-                //绘制界面
-                if (stage == Stage::Racing) {
-                    try {
-                        std::cout << "[DEBUG] Rendering racing UI" << std::endl;
-                        static const Rect rect_textbox = {
-                            0,
-                            720 - img_ui_textbox.getheight(),
-                            img_ui_textbox.getwidth(),
-                            img_ui_textbox.getheight()
-                        };
+                    putimage_ex(camera_ui, &img_ui_textbox, &rect_textbox);
 
-                        // 字符串转换可能抛出异常
-                        try {
-                            static std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
-                            if (idx_line < str_line_list.size()) {
-                                std::wstring wstr_line = convert.from_bytes(str_line_list[idx_line]);
-                                std::wstring wstr_completed = convert.from_bytes(str_line_list[idx_line].substr(0, idx_char));
+                    settextcolor(RGB(125, 125, 125));
+                    outtextxy(185 + 2, rect_textbox.y + 65 + 2, wstr_line.c_str());
 
+                    settextcolor(RGB(25, 25, 25));
+                    outtextxy(185, rect_textbox.y + 65, wstr_line.c_str());
 
-                                putimage_ex(camera_ui, &img_ui_textbox, &rect_textbox);
-
-                                settextcolor(RGB(125, 125, 125));
-                                outtextxy(185 + 2, rect_textbox.y + 65 + 2, wstr_line.c_str());
-
-                                settextcolor(RGB(25, 25, 25));
-                                outtextxy(185, rect_textbox.y + 65, wstr_line.c_str());
-
-                                settextcolor(RGB(0, 149, 217));
-                                outtextxy(185, rect_textbox.y + 65, wstr_completed.c_str());
-                            }
-                            
-
-
-                            std::cout << "[DEBUG] UI text rendered successfully" << std::endl;
-                        }
-                        catch (const std::exception& e) {
-                            std::cerr << "[ERROR] String conversion failed: " << e.what() << std::endl;
-                        }
-                    }
-                    catch (const std::exception& e) {
-                        std::cerr << "[ERROR] UI rendering failed: " << e.what() << std::endl;
-                    }
+                    settextcolor(RGB(0, 149, 217));
+                    outtextxy(185, rect_textbox.y + 65, wstr_completed.c_str());
                 }
             }
         }
-        catch (const std::exception& e) {
-            std::cerr << "[CRITICAL] Unhandled exception in processGameRander: "
-                << e.what() << std::endl;
-        }
-        catch (...) {
-            std::cerr << "[CRITICAL] Unknown exception in processGameRander" << std::endl;
-        }
-
-        std::cout << "[DEBUG] Exiting processGameRander" << std::endl;
     }
+
 private:
     enum class Stage {
         Waiting,
@@ -711,8 +633,9 @@ private:
     Stage stage = Stage::Waiting;        //当前游戏状态
 
     std::vector<int> player_progress;
+    std::vector<int> progressBackup;
     int progressArraySize;
-    int progressBackup;
+
 
     int num_total_char = 0;              //全部字符数
     int id_player = 0;

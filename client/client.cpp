@@ -306,8 +306,7 @@ int main(int argc, char** argv) {
                 const std::string& str_line = str_line_list[idx_line];
                 if (str_line[idx_char] == msg.ch) {
                     
-                    //调试
-                    std::cout << "输入正确,更新progress" << std::endl;
+
 
                     switch (rand() % 4) {
                     case 0:play_audio(_T("click_1")); break;

@@ -18,8 +18,7 @@ public:
             {
                 idx_frame++;
 
-                //调试
-                std::cout << "当前动画帧: " << idx_frame << std::endl;
+                
 
                 if (idx_frame >= frame_list.size())
                 {
@@ -96,15 +95,13 @@ public:
 
     void on_update(float delta)
     {
-        //调试
-        std::cout << "更新动画 animation delta:"<<delta << std::endl;
+        
         timer.on_update(delta);
     }
 
     void on_render(const Camera& camera)
     {
-        //调试
-        std::cout << "角色动画渲染" << std::endl;
+       
 
         const Frame& frame = frame_list[idx_frame];
 

@@ -18,12 +18,7 @@ public:
             _stprintf_s(path_file, path_template, i + 1); // 注意：此处应为 _stprintf_s
             loadimage(&img_list[i], path_file);
         }
-        if (img_list.empty()) {
-            std::cout << path_file << " loading fail" << std::endl;
-        }
-        else {
-            std::cout << path_file << " loading success" << std::endl;
-        }
+        
     }
 
     void clear() {
@@ -31,9 +26,7 @@ public:
     }
 
     int get_size() {
-        if (img_list.empty()) {
-            std::cout << "Atlas is empty!" << std::endl;
-        }
+        
         return (int)img_list.size();
     }
 
