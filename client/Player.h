@@ -2,6 +2,7 @@
 #include"Vector2.h"
 #include"Animation.h"
 #include"Atlas.h"
+#include"util.h"
 class Player
 {
 public:
@@ -93,7 +94,6 @@ public:
 		else
 		{
 			position += velocity * delta;
-
 		}
 
 		if (velocity.approx(Vector2(0, 0))) {
@@ -142,7 +142,13 @@ public:
 	void set_target(const Vector2& pos_target) {
 		this->pos_target = pos_target;
 	}
-	
+	Rect getRenderRect(const Camera& camera) {
+		return current_anim->getRenderRect(camera);
+	}
+
+	bool checkIsChange() {
+		return current_anim->checkIsChange();
+	}
 private:
 	const float SPEED_RUN = 100.0f;
 private:
@@ -161,5 +167,8 @@ private:
 	Animation* current_anim = nullptr;
 
 	Facing facing = Facing::Down;
+private:
+	bool is_change = true;
+
 };
 

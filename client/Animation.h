@@ -18,7 +18,7 @@ public:
             {
                 idx_frame++;
 
-                
+                is_anim_change = true;
 
                 if (idx_frame >= frame_list.size())
                 {
@@ -113,6 +113,30 @@ public:
         putimage_ex(camera, frame.image, &rect_dst, &frame.rect_src);
     }
 
+     Rect getRenderRect(const Camera& camera) {
+        const Frame& frame = frame_list[idx_frame];
+
+        // 将世界坐标转换为屏幕坐标 (关键修复)
+        int screen_x = static_cast<int>(position.x - camera.get_position().x) - frame.rect_src.w / 2;
+        int screen_y = static_cast<int>(position.y - camera.get_position().y) - frame.rect_src.h / 2;
+
+        return {
+            screen_x,
+            screen_y,
+            frame.rect_src.w,
+            frame.rect_src.h
+        };
+    }
+
+    bool checkIsChange() {
+        if (is_anim_change) {
+            is_anim_change = false;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 private:
     struct Frame
     {
@@ -132,4 +156,6 @@ private:
     size_t idx_frame = 0;
     std::vector<Frame> frame_list;
     std::function<void()> on_finished;
+private:
+    bool is_anim_change = true;
 };
