@@ -6,6 +6,7 @@
 #include"util.h"
 #include "Player.h"
 #include"IClient.h"
+#include"lua.hpp"                  //lua相关
 
 #include <chrono>                  // 时间处理
 #include <string>                  // 字符串操作
@@ -69,9 +70,9 @@ public:
             MessageBox(hwnd, _T("比赛已经开始啦"), _T("拒绝加入"), MB_OK | MB_ICONERROR);
             exit(-1);
         }
-        player_progress[progressArraySize - 1] = 0;
+        player_progress[progressArraySize - 1] = -1;
         player_progress[id_player] = 0;
-        progressBackup[progressArraySize - 1] = 0;
+        progressBackup[progressArraySize - 1] = -1;
         progressBackup[id_player] = 0;
 
         
@@ -240,11 +241,13 @@ public:
         timer_step.set_wait_time(0.5f);
         timer_step.set_on_timeout([&]() {
             
-            static std::random_device seed;       // 只会创建一次
-            static std::ranlux48 engine(seed());  // 只会创建一次
-            static std::uniform_int_distribution<> distrib(5, 20);  // 只会创建一次
+            //static std::random_device seed;       // 只会创建一次
+            //static std::ranlux48 engine(seed());  // 只会创建一次
+            //static std::uniform_int_distribution<> distrib(1, 10);  // 只会创建一次
 
-            int random = distrib(engine);         // 生成随机数
+            //int random = distrib(engine);         // 生成随机数
+
+            int random = getRandomFromLua();
 
             progressBackup[id_player] += random;
 
@@ -334,6 +337,32 @@ private:
         closesocket(sock);
         WSACleanup();
     }
+    int getRandomFromLua() {
+        static lua_State* L = luaL_newstate();
+        static bool isLuaOpen = false;
+
+        if (!isLuaOpen) {
+            isLuaOpen = true;
+            luaL_openlibs(L);
+
+            if (luaL_dofile(L, "script.lua") != LUA_OK) {
+                std::cerr << "Error: " << lua_tostring(L, -1) << std::endl;
+                return -1;
+            }
+        }
+
+        lua_getglobal(L, "generateRandomStep");
+
+        if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
+            std::cerr << "Error: " << lua_tostring(L, -1) << std::endl;
+            lua_close(L);
+            return -1;
+        }
+
+        int random = lua_tonumber(L, -1);
+
+        return random;
+    }
     void setDomainAndPost(std::string domain, int post) {
         this->domain = domain;
         this->post = post;
@@ -354,9 +383,10 @@ private:
 
                     player_progress = std::move(newProgresses);
                     //如果数据出错使得服务器返回当前进度小于真实进度则恢复
-                    if (player_progress[id_player] >= progressBackup[id_player]) {
+                    /*if (player_progress[id_player] >= progressBackup[id_player]) {
                         progressBackup = player_progress;
-                    }
+                    }*/
+                    progressBackup = player_progress;
 
                 }
             }
@@ -418,7 +448,6 @@ private:
             
 
             if (stage == Stage::Waiting) {
-                
                 for (int i = 0; i < progressArraySize - 1; i++) {
                     if (progressBackup[i] < 0) {
                         
@@ -426,30 +455,25 @@ private:
                     }
                 }
                 stage = Stage::Ready;
-                
             }
             else
             {
-               
-
                 if (stage == Stage::Ready) {
                     timer_countdown.on_update(delta);
                 }
                 else if (stage == Stage::Racing) {
                     timer_step.on_update(delta);//调试-自动行走
                 }
-                    
-
-
-                if (progressBackup[id_player] >= num_total_char) {
+                //if (progressBackup[id_player] >= num_total_char) {
+                if (progressBackup[progressArraySize - 1] != -1 && progressBackup[progressArraySize - 1] == id_player) {
                     
                     stop_audio(_T("bgm"));
                     play_audio((id_player == 1) ? _T("1p_win") : _T("2p_win"));
                     MessageBox(hwnd, _T("赢麻麻"), _T("游戏结束"), MB_OK | MB_ICONINFORMATION);
                     exit(0);
                 }
-                else if (progressBackup[progressArraySize - 1] >= num_total_char) {
-                    
+                else if (progressBackup[progressArraySize - 1] != -1 && progressBackup[progressArraySize - 1] != id_player) {
+                    //else if (progressBackup[progressArraySize - 1] >= num_total_char) {
                     stop_audio(_T("bgm"));
                     MessageBox(hwnd, _T("输光光"), _T("游戏结束"), MB_OK | MB_ICONINFORMATION);
                     exit(0);

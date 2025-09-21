@@ -4,8 +4,10 @@
 
 #include <graphics.h>
 
+// 保留其他库的链接
 #pragma comment(lib, "WINMM.lib")
 #pragma comment(lib, "MSIMG32.lib")
+#pragma comment(lib, "Ws2_32.lib")  // 仍然需要链接 Winsock 库
 
 const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 720;

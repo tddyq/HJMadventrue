@@ -13,37 +13,94 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="头文件\luaRelate">
+      <UniqueIdentifier>{f650c9de-e8b3-4683-a17b-7706547fbd5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\property">
+      <UniqueIdentifier>{d880a222-ba84-4d84-90ed-15d93702d849}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\module">
+      <UniqueIdentifier>{2e38b9c1-9777-40ec-b3c3-80b8c9c4162e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\field">
+      <UniqueIdentifier>{9fc1b7e7-fbb3-42a0-85c9-d7afe216d63b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\client">
+      <UniqueIdentifier>{e186eac2-058a-4314-a124-b8acbb6a4d6d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Vector2.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Atlas.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Timer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Animation.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Path.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Player.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="util.h">
       <Filter>源文件</Filter>
     </ClInclude>
-    <ClInclude Include="CClient.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="..\thirdparty\lua\include\lua.h">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\lua.hpp">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\luaconf.h">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\lualib.h">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\lauxlib.h">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="Animation.h">
+      <Filter>头文件\property</Filter>
+    </ClInclude>
+    <ClInclude Include="Atlas.h">
+      <Filter>头文件\property</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>头文件\property</Filter>
+    </ClInclude>
+    <ClInclude Include="Path.h">
+      <Filter>头文件\property</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.h">
+      <Filter>头文件\property</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>头文件\property</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector2.h">
+      <Filter>头文件\property</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceModule.h">
+      <Filter>头文件\module</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceField.h">
+      <Filter>头文件\field</Filter>
+    </ClInclude>
+    <ClInclude Include="GameState.h">
+      <Filter>头文件\field</Filter>
+    </ClInclude>
+    <ClInclude Include="DirtyRenderField.h">
+      <Filter>头文件\field</Filter>
+    </ClInclude>
+    <ClInclude Include="InternetFiled.h">
+      <Filter>头文件\field</Filter>
     </ClInclude>
     <ClInclude Include="IClient.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\client</Filter>
+    </ClInclude>
+    <ClInclude Include="CClient.h">
+      <Filter>头文件\client</Filter>
+    </ClInclude>
+    <ClInclude Include="ConnectModule.h">
+      <Filter>头文件\module</Filter>
+    </ClInclude>
+    <ClInclude Include="InputModule.h">
+      <Filter>头文件\module</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderModule.h">
+      <Filter>头文件\module</Filter>
+    </ClInclude>
+    <ClInclude Include="LogicModule.h">
+      <Filter>头文件\module</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -53,5 +110,10 @@
     <ClCompile Include="client2.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="script.lua">
+      <Filter>源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

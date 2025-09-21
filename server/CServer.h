@@ -3,7 +3,7 @@
 class CServer
 {
 public:
-	CServer(int size) :server(size) {
+	CServer(RuleModule* ruleModule) :server(ruleModule) {
 		getStrFromText();
 
 		server.login();

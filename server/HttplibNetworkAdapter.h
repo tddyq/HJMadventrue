@@ -6,6 +6,7 @@
 #include <vector>
 #include<algorithm>
 #include"../thirdparty/json.hpp"
+#include "RuleModule.h"
 
 using json = nlohmann::json;
 
@@ -13,8 +14,12 @@ class HttplibNetworkAdapter :public INetworkAdapter
 {
 public:
 
-    HttplibNetworkAdapter(int size) : player_progress(size + 1, -1), progressArraySize(size+1){
+    /*HttplibNetworkAdapter(int size) : player_progress(size + 1, -1), 
+           progressArraySize(size+1){
         player_progress[progressArraySize - 1] = 0;
+    }*/
+    HttplibNetworkAdapter(RuleModule* ruleModule) : ruleModule(ruleModule) {
+
     }
     ~HttplibNetworkAdapter() = default;
 
@@ -31,11 +36,11 @@ public:
 
                 //分配玩家id
                 int player_id = -1;
-                std::cout << "[LOGIN] Available slots: " << player_progress.size() - 1 << std::endl;
+                std::cout << "[LOGIN] Available slots: " << ruleModule->player_progress.size() - 1 << std::endl;
 
                 try {
-                    for (int i = 0; i < player_progress.size() - 1; i++) {
-                        if (player_progress[i] == -1) {
+                    for (int i = 0; i < ruleModule->player_progress.size() - 1; i++) {
+                        if (ruleModule->player_progress[i] == -1) {
                             player_id = i;
                             std::cout << "[LOGIN] Found free slot: " << player_id << std::endl;
                             break;
@@ -50,14 +55,14 @@ public:
                     return;
                 }
 
-                if (player_id >= player_progress.size() - 1) {
+                if (player_id >= ruleModule->player_progress.size() - 1) {
                     std::cout << "[LOGIN_WARN] No available slots" << std::endl;
                     res.set_content("-1", "text/plain");  // 超过最大玩家数
                 }
                 else {
                     try {
                         
-                        player_progress[player_id] = 0;  // 初始化玩家进度
+                        ruleModule->player_progress[player_id] = 0;  // 初始化玩家进度
                         create_update_route(player_id);  // 动态生成玩家进度更新路由
                         res.set_content(std::to_string(player_id), "text/plain");  // 返回玩家ID
 
@@ -156,54 +161,14 @@ private:
 
                 try {
 
-                   
-
-                    // 获取玩家的进度
-                    if (player_progress[player_id] != -1) {
-                        try {
-                            int new_progress = std::stoi(req.body);  // 可能抛出异常
-                            player_progress[player_id] = new_progress;  // 更新玩家进度
-                            if (new_progress > player_progress[progressArraySize - 1])  player_progress[progressArraySize - 1]= new_progress;
-
-                            std::cout << "[UPDATE] Updating player " << player_id
-                                << " from " << player_progress[player_id]
-                                << " to " << new_progress << std::endl;
-
-                            try {
-                                json player_progress_js = player_progress;
-                                std::string response_content = player_progress_js.dump();
-                                res.set_content(response_content, "text/plain");
-
-                                std::cout << "[UPDATE_SUCCESS] Player " << player_id
-                                    << " updated. Response: " << response_content << std::endl;
-                            }
-                            catch (const std::exception& e) {
-                                std::cerr << "[UPDATE_ERROR] JSON serialization failed: " << e.what() << std::endl;
-                                res.set_content("{\"error\":\"Serialization failed\"}", "application/json");
-                            }
-                        }
-                        catch (const std::invalid_argument& e) {
-                            std::cerr << "[UPDATE_ERROR] Invalid progress value: " << req.body
-                                << " - " << e.what() << std::endl;
-                            res.set_content("{\"error\":\"Invalid progress format\"}", "application/json");
-                        }
-                        catch (const std::out_of_range& e) {
-                            std::cerr << "[UPDATE_ERROR] Progress value out of range: " << req.body
-                                << " - " << e.what() << std::endl;
-                            res.set_content("{\"error\":\"Progress value too large\"}", "application/json");
-                        }
-                    }
-                    else {
-                        res.set_content("Player not found", "text/plain");
-
-                        std::cout << "[UPDATE_WARN] Player " << player_id << " not found" << std::endl;
-                    }
+                    ruleModule->updatePlayerProcess(player_id, req, res);
                 }
                 catch (const std::out_of_range& e) {
                     std::cerr << "[UPDATE_ERROR] Invalid player ID: " << player_id
                         << " - " << e.what() << std::endl;
                     res.set_content("{\"error\":\"Invalid player ID\"}", "application/json");
                 }
+                
             }
             catch (const std::exception& e) {
                 std::cerr << "[UPDATE_CRITICAL] Unhandled exception: " << e.what() << std::endl;
@@ -219,6 +184,8 @@ private:
     std::unique_ptr<std::mutex> mtx = std::make_unique<std::mutex>();  // 创建一个互斥锁
     httplib::Server server;
 private:
-    std::vector<int> player_progress;
-    int progressArraySize;
+    //std::vector<int> player_progress;
+    //int progressArraySize;
+private:
+    RuleModule* ruleModule;
 };

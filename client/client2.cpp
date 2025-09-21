@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     _getcwd(cwd, sizeof(cwd));
 
 
-    CClient client(10);
+    CClient client(2);
     client.init();
     client.mainLoop();
     return 0;

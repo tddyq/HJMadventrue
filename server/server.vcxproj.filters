@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="头文件\luaRelate">
+      <UniqueIdentifier>{7d207669-4bd4-442a-b171-22b04a74ab79}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="server.cpp">
@@ -32,5 +35,28 @@
     <ClInclude Include="CServer.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\lualib.h">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\luaconf.h">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\lua.hpp">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\lua.h">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\lua\include\lauxlib.h">
+      <Filter>头文件\luaRelate</Filter>
+    </ClInclude>
+    <ClInclude Include="RuleModule.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="rule.lua">
+      <Filter>源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
